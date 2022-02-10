@@ -9,7 +9,7 @@ from collections import deque
 SNAKE_LEN_GOAL = 30
 
 
-def collision_with_apple(apple_position, score):
+def collision_with_apple(score):
     apple_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
     score += 1
     return apple_position, score
@@ -30,10 +30,10 @@ def collision_with_self(snake_position):
         return 0
 
 
-class snakeEnv(gym.Env):
+class snake_env(gym.Env):
 
     def __init__(self):
-        super(snakeEnv, self).__init__()
+        super(snake_env, self).__init__()
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
@@ -76,12 +76,13 @@ class snakeEnv(gym.Env):
 
         # Increase Snake length on eating apple
         if self.snake_head == self.apple_position:
-            self.apple_position, self.score = collision_with_apple(self.apple_position, self.score)
+            self.apple_position, self.score = collision_with_apple(self.score)
             self.snake_position.insert(0, list(self.snake_head))
-
+            apple_reward = 10000
         else:
             self.snake_position.insert(0, list(self.snake_head))
             self.snake_position.pop()
+            apple_reward=0
 
         # On collision kill the snake and print the score
         if collision_with_boundaries(self.snake_head) == 1 or collision_with_self(self.snake_position) == 1:
@@ -92,7 +93,10 @@ class snakeEnv(gym.Env):
             cv2.imshow('a', self.img)
             self.done = True
 
-        self.total_reward = len(self.snake_position) - 3  # default length is 3
+
+        euclidean_dist_to_apple = np.linalg.norm(np.array(self.snake_head) - np.array(self.apple_position))
+        self.total_reward = ((250 - euclidean_dist_to_apple) + apple_reward)/100
+
         self.reward = self.total_reward - self.prev_reward
         self.prev_reward = self.total_reward
 
@@ -112,7 +116,7 @@ class snakeEnv(gym.Env):
         observation = [head_x, head_y, apple_delta_x, apple_delta_y, snake_length] + list(self.prev_actions)
         observation = np.array(observation)
 
-        return observation, self.reward, self.done, info
+        return observation, self.total_reward, self.done, info
 
     def reset(self):
         self.img = np.zeros((500, 500, 3), dtype='uint8')
@@ -136,7 +140,7 @@ class snakeEnv(gym.Env):
         apple_delta_y = self.apple_position[1] - head_y
 
         self.prev_actions = deque(maxlen=SNAKE_LEN_GOAL)  # however long we aspire the snake to be
-        for i in range(SNAKE_LEN_GOAL):
+        for _ in range(SNAKE_LEN_GOAL):
             self.prev_actions.append(-1)  # to create history
 
         # create observation:
