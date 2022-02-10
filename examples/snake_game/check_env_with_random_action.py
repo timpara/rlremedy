@@ -1,7 +1,7 @@
-from snake_env import snakeEnv
+from snake_env import snake_env
 
 
-env = snakeEnv()
+env = snake_env()
 episodes = 50
 
 for episode in range(episodes):

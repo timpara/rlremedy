@@ -1,10 +1,10 @@
 import gym
 from stable_baselines3 import PPO
 import os
-from snake_env import snakeEnv
+from snake_env import snake_env
 
 
-env = snakeEnv() # continuous: LunarLanderContinuous-v2
+env = snake_env() # continuous: LunarLanderContinuous-v2
 env.reset()
 
 model_path = os.path.join("models","1644505910","80000.zip")
