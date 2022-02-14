@@ -20,9 +20,8 @@ class time_series_env(gym.Env):
         self.obs_ticks = 10
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=float(-1.0), high=float(1.0), shape=(self.obs_ticks, 1), dtype=np.float32)
-
-
         self.total_reward = 0
+
     def step(self, action):
         self.prev_actions.append(action)
 
@@ -72,8 +71,10 @@ class time_series_env(gym.Env):
         self.tick_count = 0
         self.done = False
 
+        #create toy sin data
+        self.my_data = np.reshape(np.sin(np.random.rand(1000) * 2),[-1,1])
 
-          # however long we aspire the snake to be
+        # however long we aspire the snake to be
         for _ in range(2):
             self.prev_actions.append(-1)  # to create history
             self.data_at_step.append(0)
