@@ -1,9 +1,6 @@
 import gym
 from gym import spaces
 import numpy as np
-import cv2
-import random
-import time
 from collections import deque
 
 
@@ -17,7 +14,7 @@ class time_series_env(gym.Env):
         # Example when using discrete actions:
         self.action_space = spaces.Discrete(3)#buy sell neutral
         # Number of past ticks per feature to be used as observations (1440min=1day, 10080=1Week, 43200=1month, )
-        self.obs_ticks = 10
+        self.obs_ticks = 4
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=float(-1.0), high=float(1.0), shape=(self.obs_ticks, 1), dtype=np.float32)
         self.total_reward = 0
@@ -25,7 +22,7 @@ class time_series_env(gym.Env):
     def step(self, action):
         self.prev_actions.append(action)
 
-        self.data_at_step.append(self.my_data[self.tick_count,1])
+        self.data_at_step.append(self.my_data[self.tick_count,0])
 
 
 
@@ -58,7 +55,7 @@ class time_series_env(gym.Env):
         # create observation:
         info = {"Total_reward": self.total_reward, "tick_count": self.tick_count}
         observation = [self.data_at_step[0], self.data_at_step[1]] + list(self.prev_actions)
-        observation = np.array(observation)
+        observation = np.reshape(np.array(observation),[-1,1])
         self.tick_count +=1
         return observation, self.total_reward, self.done, info
 
@@ -67,7 +64,7 @@ class time_series_env(gym.Env):
 
         self.prev_actions = deque(maxlen=2)
         self.prev_reward = 0
-        self.data_at_step = deque(2)
+        self.data_at_step = deque(maxlen=2)
         self.tick_count = 0
         self.done = False
 
@@ -80,6 +77,6 @@ class time_series_env(gym.Env):
             self.data_at_step.append(0)
         # create observation:
         observation = [self.data_at_step[0], self.data_at_step[1]] + list(self.prev_actions)
-        observation = np.array(observation)
+        observation = np.reshape(np.array(observation),[-1,1])
 
         return observation

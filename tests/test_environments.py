@@ -1,5 +1,5 @@
 from stable_baselines3.common.env_checker import check_env
-from custom_envs import time_series_env
+from custom_envs.time_series import time_series_env
 import pytest
 
 #%%
