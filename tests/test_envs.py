@@ -5,7 +5,10 @@ import pytest
 #%%
 @pytest.mark.integration
 def test_time_series_env():
-
+    '''
+    Instantiates the env and feeds it into the env_check. Output is generated if sanity checks fail.
+    :return:
+    '''
     env = time_series_env()
     # It will check your custom environment and output additional warnings if needed
     check_env(env)
