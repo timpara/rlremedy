@@ -16,7 +16,7 @@ def test_time_series_env():
     check_env(env)
 
 @pytest.mark.integration
-def test_time_series_env():
+def test_snake_env():
     '''
     Instantiates the snake env and feeds it into the env_check. Output is generated if sanity checks fail.
     :return:
