@@ -1,9 +1,11 @@
 from custom_envs.time_series import time_series_env
+from custom_envs.games import snake_env
+
 import pytest
 
 
 @pytest.mark.integration
-def test_time_series_env():
+def test_time_series_env_random_action():
     '''
     Instantiates the time series env and samples random action.
     Allows for a quick end-to-end check
@@ -19,3 +21,19 @@ def test_time_series_env():
             print("action",random_action)
             obs, total_reward, _, info = env.step(random_action)
             print('reward',total_reward)
+
+@pytest.mark.integration
+def test_snake_env_random_action():
+    '''
+    Instantiates the snake env and samples random action.
+    Allows for a quick end-to-end check
+    '''
+    env = snake_env()
+    episodes = 5
+    env.reset()
+    for _ in range(episodes):
+        while not env.done:
+            random_action = env.action_space.sample()
+            print("action",random_action)
+            obs, reward, done, info = env.step(random_action)
+            print('reward',reward)
