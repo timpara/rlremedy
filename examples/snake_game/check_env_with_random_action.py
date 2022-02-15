@@ -1,5 +1,4 @@
-from snake_env import snake_env
-
+from custom_envs.games import snake_env
 
 env = snake_env()
 episodes = 50

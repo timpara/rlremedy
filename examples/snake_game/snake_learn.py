@@ -1,6 +1,6 @@
 from stable_baselines3 import PPO
 import os
-from snake_env import snake_env
+from custom_envs.games import snake_env
 import time
 
 
