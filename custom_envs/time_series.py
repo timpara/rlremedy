@@ -43,7 +43,7 @@ class time_series_env(gym.Env):
 
 
         # On last timestep kill the step
-        if self.tick_count == len(self.my_data):
+        if self.tick_count == len(self.my_data)-1:
             self.done = True
 
 
