@@ -1,6 +1,5 @@
 from custom_envs.time_series import time_series_env
-from custom_envs.games import snake_env
-
+from custom_envs.games.snake import snake_env
 import pytest
 
 
@@ -11,7 +10,7 @@ def test_time_series_env_random_action():
     Allows for a quick end-to-end check
     '''
     env = time_series_env()
-    episodes = 50
+    episodes = 5
 
     for _ in range(episodes):
         env.reset()
@@ -21,6 +20,7 @@ def test_time_series_env_random_action():
             print("action",random_action)
             obs, total_reward, _, info = env.step(random_action)
             print('reward',total_reward)
+
 
 @pytest.mark.integration
 def test_snake_env_random_action():
