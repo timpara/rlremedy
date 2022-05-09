@@ -1,16 +1,17 @@
 import gym
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO,DQN
+from custom_envs.time_series.plain_vanilla import time_series_env
 import os
-from custom_envs.games import snake_env
 
-env = snake_env() # continuous: LunarLanderContinuous-v2
+
+env = time_series_env() # continuous: LunarLanderContinuous-v2
 env.reset()
 
-model_path = os.path.join("models","1644505910","80000.zip")
+model_path = os.path.join("logs","DQN","best_model.zip")
 
-model = PPO.load(model_path, env=env)
+model = DQN.load(model_path, env=env)
 
-episodes = 50
+episodes = 1
 
 for ep in range(episodes):
     obs = env.reset()
@@ -18,4 +19,6 @@ for ep in range(episodes):
     while not done:
         action, _states = model.predict(obs)
         obs, rewards, done, info = env.step(action)
+        env.render()
         print(rewards)
+    env.pause_rendering()
