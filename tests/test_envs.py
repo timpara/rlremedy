@@ -1,17 +1,17 @@
 from stable_baselines3.common.env_checker import check_env
-from custom_envs.time_series import time_series_env
+from custom_envs.time_series import plain_vanilla
 from custom_envs.games.snake import snake_env
 
 import pytest
 
 #%%
 @pytest.mark.integration
-def test_time_series_env():
+def test_plain_vanilla_env():
     '''
     Instantiates the env and feeds it into the env_check. Output is generated if sanity checks fail.
     :return:
     '''
-    env = time_series_env()
+    env = plain_vanilla()
     # It will check your custom environment and output additional warnings if needed
     check_env(env)
 
