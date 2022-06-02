@@ -1,14 +1,10 @@
-from stable_baselines3 import PPO,DQN
+from stable_baselines3 import DQN
 import os
-from custom_envs.time_series.plain_vanilla import time_series_env
+from rlremedy.envs.time_series import time_series_env
 import time
-from stable_baselines3.common.env_util import make_vec_env
-import gym
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
 from utils.callbacks import SaveOnBestTrainingRewardCallback
-from utils.learning import linear_schedule
-from utils.models import CustomActorCriticPolicy
 import wandb
 
 models_dir = os.path.join("models",str(int(time.time())))

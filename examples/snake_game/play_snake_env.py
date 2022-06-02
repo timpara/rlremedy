@@ -1,7 +1,6 @@
-import gym
 from stable_baselines3 import PPO
 import os
-from custom_envs.games.snake import snake_env
+from rlremedy.envs.games.snake import snake_env
 
 env = snake_env() # continuous: LunarLanderContinuous-v2
 env.reset()

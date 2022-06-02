@@ -1,6 +1,6 @@
 from stable_baselines3.common.env_checker import check_env
-from custom_envs.time_series import plain_vanilla
-from custom_envs.games.snake import snake_env
+from rlremedy.envs.time_series import plain_vanilla
+from rlremedy.envs.games import snake_env
 
 import pytest
 
