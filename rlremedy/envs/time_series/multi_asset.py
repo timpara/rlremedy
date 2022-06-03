@@ -5,6 +5,10 @@ from collections import deque
 import matplotlib.pyplot as plt
 from gym.envs.registration import register
 from sklearn.preprocessing import minmax_scale
+import numpy as np
+import tensorflow as tf
+from rlremedy.models.time_series.multivariate_geo_brownian_motion import MultivariateGeometricBrownianMotion
+from utils.math.random_ops import RandomType
 plt.ion()
 class DynamicUpdate():
     #Suppose we know the x range
@@ -36,18 +40,25 @@ class DynamicUpdate():
 
 
 
-class time_series_env(gym.Env):
+class multi_asset_env(gym.Env):
 
     def __init__(self):
-        super(time_series_env, self).__init__()
+        super(multi_asset_env, self).__init__()
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
-        self.action_space = spaces.Discrete(2)#buy sell
         # Number of past ticks per feature to be used as observations (1440min=1day, 10080=1Week, 43200=1month, )
         self.obs_ticks = 3
+        self.means = [0.05, 0.02]
+        self.volatilities = [0.1, 0.2]
+        self.corr_matrix = [[1, 0.1], [0.1, 1]]
+        self.times =  tf.linspace(tf.constant(0.0, dtype=np.float64), 252, 253)
+        self.num_samples_local=1
+        self.initial_state = [1.0, 2.0]
         # Example for using image as input (channel-first; channel-last also works):
-        self.observation_space = spaces.Box(low=float(-1), high=float(1e4), shape=(1,self.obs_ticks), dtype=np.float32)
+        self.observation_space = spaces.Box(low=float(-1), high=float(1e4), shape=(len(self.means),self.obs_ticks), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1.0,high=1.0,shape=(1,len(self.means)),dtype=np.float16)#buy sell
+        self.seed_sampling=[1,2]
         self.total_reward = 0
     def register(self,env_id):
         register(
@@ -55,7 +66,7 @@ class time_series_env(gym.Env):
             id=env_id,
             # path to the class for creating the env
             # Note: entry_point also accept a class as input (and not only a string)
-            entry_point=time_series_env,  # time_series_env,
+            entry_point=multi_asset_env,  # time_series_env,
             # Max number of steps per episode, using a `TimeLimitWrapper`
             max_episode_steps=500,
         )
@@ -86,10 +97,10 @@ class time_series_env(gym.Env):
         return self.observation, self.total_reward, self.done, info
 
     def _next_observation(self):
-        self.data_at_step.append(self.my_data[self.tick_count, 0])
-        observation = np.where(np.diff(self.data_at_step)<0,-1,1)
-        observation = np.array([int(observation), self.prev_actions[-1], self.total_reward])
-        observation = np.reshape(np.array(observation), [-1, self.obs_ticks])
+        self.data_at_step.append(self.my_data[0,self.tick_count, :])
+        #observation = np.where(np.diff(self.data_at_step)<0,-1,1)
+        observation = np.array([self.data_at_step, self.prev_actions[-1], self.total_reward])
+        #observation = np.reshape(np.array(observation), [-1, self.obs_ticks])
         return observation
 
     def reset(self):
@@ -105,12 +116,23 @@ class time_series_env(gym.Env):
         # 10k linearly spaced numbers
 
         self.ticks = np.arange(0, 1000)
-        cycles = 5  # how many sine cycles
-        resolution = 1000  # how many datapoints to generate
 
-        length = np.pi * 2 * cycles
-        self.my_data = np.reshape(np.sin(np.arange(0, length, length / resolution)),[-1,1])
-        self.my_data = minmax_scale(self.my_data, feature_range=(0, 1))
+
+        process = MultivariateGeometricBrownianMotion(
+            dim=2, means= self.means, volatilities= self.volatilities, corr_matrix= self.corr_matrix,
+            dtype=tf.float64)
+
+
+
+        samples = process.sample_paths(
+            times=self.times, initial_state=self.initial_state,
+            random_type=RandomType.STATELESS,
+            num_samples=self.num_samples_local, normal_draws=None,seed=self.seed_sampling)
+
+        self.my_data  = samples
+
+
+        #self.my_data = minmax_scale(self.my_data, feature_range=(0, 1))
 
 
 
@@ -128,8 +150,6 @@ class time_series_env(gym.Env):
     def render(self, mode="human"):
         if self.tick_count < 100:
             return
-
-
         def _plot_position():
 
             if self.all_previous_actions[-1]==0:
