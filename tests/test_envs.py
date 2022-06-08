@@ -14,7 +14,6 @@ def test_plain_vanilla_env():
     env = time_series_env()
     # It will check your custom environment and output additional warnings if needed
     check_env(env)
-
 @pytest.mark.integration
 def test_snake_env():
     '''
@@ -23,7 +22,7 @@ def test_snake_env():
     '''
     env = snake_env()
     # It will check your custom environment and output additional warnings if needed
-    check_env(env)
+    check_env(env,warn=True)
 
 @pytest.mark.integration
 def test_multi_asset():

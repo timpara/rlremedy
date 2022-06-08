@@ -99,13 +99,13 @@ class multi_asset_env(gym.Env):
 
     def _next_observation(self):
         observation = np.append(self.my_data[0, self.tick_count, :].numpy(), np.append(self.prev_actions[-1], self.total_reward))
-        return observation.reshape(self.obs_ticks,-1)
+        return observation.reshape(self.obs_ticks,-1).astype(np.float16)
 
     def reset(self):
         # Initial action
 
         self.prev_actions = deque(maxlen=1)
-        self.prev_reward = 0
+        self.prev_reward = 0.0
         self.data_at_step = deque(maxlen=2)
         self.tick_count = 0
         self.done = False
@@ -173,7 +173,7 @@ class multi_asset_env(gym.Env):
         # base assumption: all flat
 
 
-        self.reward=np.matmul(np.asarray(data)[1] - np.asarray(data)[0], prev_action.T)
+        self.reward=float(np.matmul(np.asarray(data)[1] - np.asarray(data)[0], prev_action.T))
 
     def pause_rendering(self):
         plt.show()
