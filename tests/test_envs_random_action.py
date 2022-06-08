@@ -1,5 +1,5 @@
-from rlremedy.envs.time_series import time_series_env
-from rlremedy.envs.games import snake_env
+from rlremedy.envs.time_series.plain_vanilla import time_series_env
+from rlremedy.envs.games.snake import snake_env
 import pytest
 
 

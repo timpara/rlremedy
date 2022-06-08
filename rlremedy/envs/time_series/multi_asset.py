@@ -48,16 +48,17 @@ class multi_asset_env(gym.Env):
         # They must be gym.spaces objects
         # Example when using discrete actions:
         # Number of past ticks per feature to be used as observations (1440min=1day, 10080=1Week, 43200=1month, )
-        self.obs_ticks = 3
+        self.obs_ticks = 1
         self.means = [0.05, 0.02]
+        self.number_of_assets = len(self.means)
         self.volatilities = [0.1, 0.2]
         self.corr_matrix = [[1, 0.1], [0.1, 1]]
         self.times =  tf.linspace(tf.constant(0.0, dtype=np.float64), 252, 253)
         self.num_samples_local=1
         self.initial_state = [1.0, 2.0]
         # Example for using image as input (channel-first; channel-last also works):
-        self.observation_space = spaces.Box(low=float(-1), high=float(1e4), shape=(len(self.means),self.obs_ticks), dtype=np.float32)
-        self.action_space = spaces.Box(low=-1.0,high=1.0,shape=(1,len(self.means)),dtype=np.float16)#buy sell
+        self.observation_space = spaces.Box(low=float(-1), high=float(1e4), shape=(self.obs_ticks,self.number_of_assets*2+1), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1.0,high=1.0,shape=(1,self.number_of_assets),dtype=np.float16)#buy sell
         self.seed_sampling=[1,2]
         self.total_reward = 0
     def register(self,env_id):
@@ -84,7 +85,7 @@ class multi_asset_env(gym.Env):
         # create observation:
         self.observation = self._next_observation()
 
-
+        self.data_at_step.append(self.my_data[0,self.tick_count,:])
 
 
         self._take_action(prev_action=self.prev_actions.pop(),current_action=action,data=self.data_at_step)
@@ -97,11 +98,8 @@ class multi_asset_env(gym.Env):
         return self.observation, self.total_reward, self.done, info
 
     def _next_observation(self):
-        self.data_at_step.append(self.my_data[0,self.tick_count, :])
-        #observation = np.where(np.diff(self.data_at_step)<0,-1,1)
-        observation = np.array([self.data_at_step, self.prev_actions[-1], self.total_reward])
-        #observation = np.reshape(np.array(observation), [-1, self.obs_ticks])
-        return observation
+        observation = np.append(self.my_data[0, self.tick_count, :].numpy(), np.append(self.prev_actions[-1], self.total_reward))
+        return observation.reshape(self.obs_ticks,-1)
 
     def reset(self):
         # Initial action
@@ -124,28 +122,24 @@ class multi_asset_env(gym.Env):
 
 
 
-        samples = process.sample_paths(
+        self.my_data  = process.sample_paths(
             times=self.times, initial_state=self.initial_state,
             random_type=RandomType.STATELESS,
             num_samples=self.num_samples_local, normal_draws=None,seed=self.seed_sampling)
-
-        self.my_data  = samples
-
-
         #self.my_data = minmax_scale(self.my_data, feature_range=(0, 1))
 
 
 
         self._first_rendering=True
         for _ in range(self.prev_actions.maxlen):
-            self.prev_actions.append(0)  # to create history
+            self.prev_actions.append(np.zeros([1,self.number_of_assets]))  # to create history
         for _ in range(self.data_at_step.maxlen):
-            self.data_at_step.append(0)
+            self.data_at_step.append(np.zeros([1,self.number_of_assets]))
 
         # create observation:
-        observation = self._next_observation()
+        # make observation to deque and append
+        return self._next_observation()
 
-        return observation
 
     def render(self, mode="human"):
         if self.tick_count < 100:
@@ -176,20 +170,10 @@ class multi_asset_env(gym.Env):
 
 
     def _take_action(self,prev_action,current_action,data):
+        # base assumption: all flat
 
-        if prev_action ==0:
-            # we buy
-            self.reward = (data[1] - data[0])
 
-        elif prev_action == 1:
-            # we sell
-            self.reward = (data[0] - data[1])
-        else:
-            self.reward = 0
-            # all flat
-        if current_action != prev_action:
-            self.reward=-abs(self.reward)
-        #if self.reward < 0:
-        #    self.reward = self.reward * 2
+        self.reward=np.matmul(np.asarray(data)[1] - np.asarray(data)[0], prev_action.T)
+
     def pause_rendering(self):
         plt.show()
