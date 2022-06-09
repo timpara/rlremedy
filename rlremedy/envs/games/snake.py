@@ -9,12 +9,6 @@ from gym import spaces
 SNAKE_LEN_GOAL = 30
 
 
-
-
-SNAKE_LEN_GOAL = 30
-
-
-
 def collision_with_apple(score):
     apple_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
     score += 1
