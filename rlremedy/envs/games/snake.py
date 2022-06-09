@@ -120,7 +120,7 @@ class snake_env(gym.Env):
         # create observation:
 
         observation = [head_x, head_y, apple_delta_x, apple_delta_y, snake_length] + list(self.prev_actions)
-        observation = np.array(observation)
+        observation = np.array(observation).astype(np.float32)
 
         return observation, self.total_reward, self.done, info
 
@@ -151,6 +151,6 @@ class snake_env(gym.Env):
 
         # create observation:
         observation = [head_x, head_y, apple_delta_x, apple_delta_y, snake_length] + list(self.prev_actions)
-        observation = np.array(observation)
+        observation = np.array(observation).astype(np.float32)
 
         return observation

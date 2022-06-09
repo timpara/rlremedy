@@ -1,6 +1,5 @@
-import gym
-from stable_baselines3 import PPO,DQN
-from custom_envs.time_series.plain_vanilla import time_series_env
+from stable_baselines3 import DQN
+from rlremedy.envs.time_series import time_series_env
 import os
 
 

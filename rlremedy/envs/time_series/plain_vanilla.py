@@ -47,7 +47,8 @@ class time_series_env(gym.Env):
         # Number of past ticks per feature to be used as observations (1440min=1day, 10080=1Week, 43200=1month, )
         self.obs_ticks = 3
         # Example for using image as input (channel-first; channel-last also works):
-        self.observation_space = spaces.Box(low=float(-1), high=float(1e4), shape=(1,self.obs_ticks), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_ticks, 1),
+                                            dtype=int)
         self.total_reward = 0
     def register(self,env_id):
         register(
@@ -87,9 +88,8 @@ class time_series_env(gym.Env):
 
     def _next_observation(self):
         self.data_at_step.append(self.my_data[self.tick_count, 0])
-        observation = np.where(np.diff(self.data_at_step)<0,-1,1)
-        observation = np.array([int(observation), self.prev_actions[-1], self.total_reward])
-        observation = np.reshape(np.array(observation), [-1, self.obs_ticks])
+        observation = np.array([int(np.where(np.diff(self.data_at_step)<0,-1,1)), self.prev_actions[-1], self.total_reward]).ravel()
+        observation = np.reshape(observation, (self.obs_ticks,1 ))
         return observation
 
     def reset(self):
@@ -169,7 +169,6 @@ class time_series_env(gym.Env):
             # all flat
         if current_action != prev_action:
             self.reward=-abs(self.reward)
-        #if self.reward < 0:
-        #    self.reward = self.reward * 2
+
     def pause_rendering(self):
         plt.show()
