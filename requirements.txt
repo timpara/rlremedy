@@ -5,3 +5,4 @@ torch
 stable-baselines3
 scikit-learn
 opencv-python
+tensorflow
