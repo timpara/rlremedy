@@ -75,7 +75,7 @@ class multi_asset_env(gym.Env):
     def step(self, action):
         self.tick_count += 1
         # On last timestep kill the step
-        if self.tick_count == len(self.my_data)-1:
+        if self.tick_count == len(self.times)-1:
             self.done = True
 
 
@@ -126,7 +126,6 @@ class multi_asset_env(gym.Env):
             times=self.times, initial_state=self.initial_state,
             random_type=RandomType.STATELESS,
             num_samples=self.num_samples_local, normal_draws=None,seed=self.seed_sampling)
-        #self.my_data = minmax_scale(self.my_data, feature_range=(0, 1))
 
 
 

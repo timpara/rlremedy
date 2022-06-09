@@ -169,7 +169,6 @@ class time_series_env(gym.Env):
             # all flat
         if current_action != prev_action:
             self.reward=-abs(self.reward)
-        #if self.reward < 0:
-        #    self.reward = self.reward * 2
+
     def pause_rendering(self):
         plt.show()
