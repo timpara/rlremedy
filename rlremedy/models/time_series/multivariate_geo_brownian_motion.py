@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from utils.models.building import generate_mc_normal_draws
+physical_devices = tf.config.list_physical_devices('GPU')
+for device in physical_devices:
+    tf.config.experimental.set_memory_growth(device=device, enable=True)
 """Multivariate Geometric Brownian Motion."""
 class MultivariateGeometricBrownianMotion():
   """Multivariate Geometric Brownian Motion.
@@ -218,7 +221,6 @@ class MultivariateGeometricBrownianMotion():
     else:
       # Shape [num_time_points, num_samples, dim]
       normal_draws = tf.transpose(normal_draws, [1, 0, 2])
-      num_samples = tf.shape(normal_draws)[1]
       draws_dim = normal_draws.shape[2]
       if self._dim != draws_dim:
         raise ValueError(

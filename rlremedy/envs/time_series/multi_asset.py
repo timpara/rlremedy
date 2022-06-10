@@ -49,7 +49,7 @@ class multi_asset_env(gym.Env):
         # Example when using discrete actions:
         # Number of past ticks per feature to be used as observations (1440min=1day, 10080=1Week, 43200=1month, )
         self.obs_ticks = 1
-        self.means = [0.05, 0.02]
+        self.means = [-0.01, 0.02]
         self.number_of_assets = len(self.means)
         self.volatilities = [0.1, 0.2]
         self.corr_matrix = [[1, 0.1], [0.1, 1]]
@@ -84,40 +84,30 @@ class multi_asset_env(gym.Env):
 
         # create observation:
         self.observation = self._next_observation()
-
-        self.data_at_step.append(self.my_data[0,self.tick_count,:])
-
-
-        self._take_action(prev_action=self.prev_actions.pop(),current_action=action,data=self.data_at_step)
-        self.total_reward += self.reward
+        self.total_reward += self._take_action(prev_action=self.prev_actions.pop())
 
         info = {"Total_reward": self.total_reward, "tick_count": self.tick_count}
-
         self.prev_actions.append(action)
 
         return self.observation, self.total_reward, self.done, info
 
     def _next_observation(self):
         observation = np.append(self.my_data[0, self.tick_count, :].numpy(), np.append(self.prev_actions[-1], self.total_reward))
-        return observation.reshape(self.obs_ticks,-1).astype(np.float16)
+        return observation.reshape(self.obs_ticks,-1).astype(np.float64)
 
     def reset(self):
         # Initial action
 
         self.prev_actions = deque(maxlen=1)
         self.prev_reward = 0.0
-        self.data_at_step = deque(maxlen=2)
         self.tick_count = 0
         self.done = False
         self.all_previous_actions = []
-        #create toy sin data
-        # 10k linearly spaced numbers
 
-        self.ticks = np.arange(0, 1000)
 
 
         process = MultivariateGeometricBrownianMotion(
-            dim=2, means= self.means, volatilities= self.volatilities, corr_matrix= self.corr_matrix,
+            dim=self.number_of_assets, means= self.means, volatilities= self.volatilities, corr_matrix= self.corr_matrix,
             dtype=tf.float64)
 
 
@@ -132,8 +122,7 @@ class multi_asset_env(gym.Env):
         self._first_rendering=True
         for _ in range(self.prev_actions.maxlen):
             self.prev_actions.append(np.zeros([1,self.number_of_assets]))  # to create history
-        for _ in range(self.data_at_step.maxlen):
-            self.data_at_step.append(np.zeros([1,self.number_of_assets]))
+
 
         # create observation:
         # make observation to deque and append
@@ -168,11 +157,11 @@ class multi_asset_env(gym.Env):
             "Total Reward: %.6f" % self.total_reward)
 
 
-    def _take_action(self,prev_action,current_action,data):
-        # base assumption: all flat
+    def _take_action(self,prev_action):
 
-
-        self.reward=float(np.matmul(np.asarray(data)[1] - np.asarray(data)[0], prev_action.T))
+        return_matrix = self.my_data[0, self.tick_count, :]-self.my_data[0, self.tick_count - self.obs_ticks, :]
+        weighted_return_matrix=np.matmul(return_matrix, prev_action.T)
+        return float(weighted_return_matrix)
 
     def pause_rendering(self):
         plt.show()
