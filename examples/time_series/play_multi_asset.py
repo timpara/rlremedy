@@ -6,7 +6,7 @@ import os
 env = multi_asset_env() # continuous: LunarLanderContinuous-v2
 env.reset()
 
-model_path = os.path.join("logs","MultiAsset-v1","1654870457","best_model.zip")
+model_path = os.path.join("logs","MultiAsset-v1","1654871823","best_model.zip")
 
 model = PPO.load(model_path, env=env)
 
