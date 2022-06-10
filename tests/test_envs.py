@@ -4,8 +4,12 @@ from rlremedy.envs.games.snake import snake_env
 from rlremedy.envs.time_series.multi_asset import multi_asset_env
 import pytest
 
-#%%
-@pytest.mark.integration
+#
+slow_test = pytest.mark.skipif(
+    "not config.getoption('--run-slow')",
+    reason="Only run when --run-slow is given",
+)
+@slow_test
 def test_plain_vanilla_env():
     '''
     Instantiates the env and feeds it into the env_check. Output is generated if sanity checks fail.
@@ -14,7 +18,7 @@ def test_plain_vanilla_env():
     env = time_series_env()
     # It will check your custom environment and output additional warnings if needed
     check_env(env)
-@pytest.mark.integration
+@slow_test
 def test_snake_env():
     '''
     Instantiates the snake env and feeds it into the env_check. Output is generated if sanity checks fail.
@@ -24,7 +28,7 @@ def test_snake_env():
     # It will check your custom environment and output additional warnings if needed
     check_env(env,warn=True)
 
-@pytest.mark.integration
+@slow_test
 def test_multi_asset():
     '''
     Instantiates the snake env and feeds it into the env_check. Output is generated if sanity checks fail.

@@ -4,7 +4,11 @@ from rlremedy.envs.time_series.multi_asset import multi_asset_env
 import pytest
 
 
-@pytest.mark.integration
+slow_test = pytest.mark.skipif(
+    "not config.getoption('--run-slow')",
+    reason="Only run when --run-slow is given",
+)
+@slow_test
 def test_time_series_env_random_action():
     '''
     Instantiates the time series env and samples random action.
@@ -23,7 +27,7 @@ def test_time_series_env_random_action():
             print('reward',total_reward)
 
 
-@pytest.mark.integration
+@slow_test
 def test_snake_env_random_action():
     '''
     Instantiates the snake env and samples random action.
@@ -39,7 +43,7 @@ def test_snake_env_random_action():
             obs, reward, done, info = env.step(random_action)
             print('reward',reward)
 
-@pytest.mark.integration
+@slow_test
 def test_multi_asset_random_action():
     '''
     Instantiates the snake env and samples random action.
