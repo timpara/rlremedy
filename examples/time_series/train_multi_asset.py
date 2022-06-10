@@ -1,4 +1,4 @@
-from stable_baselines3 import DDPG
+from stable_baselines3 import PPO
 import os
 from rlremedy.envs.time_series.multi_asset import multi_asset_env
 import time
@@ -35,13 +35,12 @@ wandb.init(
     sync_tensorboard=True,  # automatically upload SB3's tensorboard metrics to W&B
     project="DDPG-MultiAsset-Example",
     monitor_gym=True,       # automatically upload gym environements' videos
-    save_code=True)
+    save_code=False)
 
-model = DDPG("MlpPolicy",
+model = PPO("MlpPolicy",
             vec_env,
             verbose=1,
-            tensorboard_log=logdir,
-            seed=2)
+            tensorboard_log=logdir,seed=2,batch_size=10)
 
 
 # Random Agent, before training

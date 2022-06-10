@@ -49,17 +49,17 @@ class multi_asset_env(gym.Env):
         # Example when using discrete actions:
         # Number of past ticks per feature to be used as observations (1440min=1day, 10080=1Week, 43200=1month, )
         self.obs_ticks = 1
-        self.means = [-0.01, 0.02]
+        self.means = [-0.01, 0.01]
         self.number_of_assets = len(self.means)
-        self.volatilities = [0.1, 0.2]
+        self.volatilities = [0.05, 0.025]
         self.corr_matrix = [[1, 0.1], [0.1, 1]]
-        self.times =  tf.linspace(tf.constant(0.0, dtype=np.float64), 252, 253)
+        self.times =  tf.linspace(tf.constant(0.0, dtype=np.float64), 504, 505)
         self.num_samples_local=1
-        self.initial_state = [1.0, 2.0]
+        self.initial_state = [150, 1.0]
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=float(-1), high=float(1e4), shape=(self.obs_ticks,self.number_of_assets*2+1), dtype=np.float32)
-        self.action_space = spaces.Box(low=-1.0,high=1.0,shape=(1,self.number_of_assets),dtype=np.float16)#buy sell
-        self.seed_sampling=[1,2]
+        self.action_space = spaces.Box(low=-1.0,high=1.0,shape=(self.number_of_assets,),dtype=np.float32)#buy sell
+        self.seed_sampling=list(map(int,np.random.random_sample(self.number_of_assets)*100))
         self.total_reward = 0
     def register(self,env_id):
         register(
@@ -92,7 +92,9 @@ class multi_asset_env(gym.Env):
         return self.observation, self.total_reward, self.done, info
 
     def _next_observation(self):
-        observation = np.append(self.my_data[0, self.tick_count, :].numpy(), np.append(self.prev_actions[-1], self.total_reward))
+        market_state = np.mean(np.diff(self.my_data[0, max(self.tick_count - 100, 0):self.tick_count, :].numpy(),axis=0),axis=0)
+
+        observation = np.append(market_state, np.append(self.prev_actions[-1], self.total_reward))
         return observation.reshape(self.obs_ticks,-1).astype(np.float64)
 
     def reset(self):
@@ -100,7 +102,7 @@ class multi_asset_env(gym.Env):
 
         self.prev_actions = deque(maxlen=1)
         self.prev_reward = 0.0
-        self.tick_count = 0
+        self.tick_count = 100
         self.done = False
         self.all_previous_actions = []
 
@@ -133,24 +135,23 @@ class multi_asset_env(gym.Env):
         if self.tick_count < 100:
             return
         def _plot_position():
+            for asset in range(np.shape(self.my_data)[2]):
+                last_action = np.array(self.all_previous_actions)[-1,asset]
+                if last_action < 0:
+                    color = 'red'
+                elif last_action>0:
+                    color = 'green'
+                else:
+                    color = 'yellow'
 
-            if self.all_previous_actions[-1]==0:
-                color = 'green'
-            elif self.all_previous_actions[-1]==1:
-                color = 'red'
-            else:
-                color = 'yellow'
-            #elif self.all_previous_actions[-1]==0:
-
-            #if color:
-            plt.scatter(self.tick_count,self.my_data[self.tick_count-1], color=color)
+                plt.scatter(self.tick_count,self.my_data[0,self.tick_count-1,asset], color=color)
 
         if self._first_rendering:
             self._first_rendering = False
             plt.cla()
-            plt.plot(self.my_data)
-            _plot_position()
-        plt.plot(self.my_data)
+            for asset in range(np.shape(self.my_data)[2]):
+                plt.plot(self.my_data[0,:,asset])
+            #_plot_position()
         _plot_position()
 
         plt.suptitle(
