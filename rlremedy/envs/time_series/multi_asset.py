@@ -56,20 +56,22 @@ class multi_asset_env(gym.Env):
         self.times =  tf.linspace(tf.constant(0.0, dtype=np.float64), 504, 505)
         self.num_samples_local=1
         self.initial_state = [150, 1.0]
+        self.action_costs = 0.01
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=float(-1), high=float(1e4), shape=(self.obs_ticks,self.number_of_assets*2+1), dtype=np.float32)
         self.action_space = spaces.Box(low=-1.0,high=1.0,shape=(self.number_of_assets,),dtype=np.float32)#buy sell
         self.seed_sampling=list(map(int,np.random.random_sample(self.number_of_assets)*100))
         self.total_reward = 0
-    def register(self,env_id):
-        register(
+    def register(self,env_id,max_episode_steps):
+        gym.envs.registration.register(
             # unique identifier for the env `name-version`
             id=env_id,
             # path to the class for creating the env
             # Note: entry_point also accept a class as input (and not only a string)
-            entry_point=multi_asset_env,  # time_series_env,
+            entry_point=f'rlremedy.envs.time_series.multi_asset:multi_asset_env',
+            # time_series_env,
             # Max number of steps per episode, using a `TimeLimitWrapper`
-            max_episode_steps=500,
+            max_episode_steps=max_episode_steps,
         )
 
     def step(self, action):
@@ -84,9 +86,9 @@ class multi_asset_env(gym.Env):
 
         # create observation:
         self.observation = self._next_observation()
-        self.total_reward += self._take_action(prev_action=self.prev_actions.pop())
+        self.total_reward += self._take_action(prev_action=self.prev_actions)
 
-        info = {"Total_reward": self.total_reward, "tick_count": self.tick_count}
+        info = {"Total_reward": self.total_reward, "self.tick_count": self.tick_count}
         self.prev_actions.append(action)
 
         return self.observation, self.total_reward, self.done, info
@@ -95,14 +97,15 @@ class multi_asset_env(gym.Env):
         market_state = np.mean(np.diff(self.my_data[0, max(self.tick_count - 100, 0):self.tick_count, :].numpy(),axis=0),axis=0)
 
         observation = np.append(market_state, np.append(self.prev_actions[-1], self.total_reward))
+        observation = np.nan_to_num(observation, nan=0)
         return observation.reshape(self.obs_ticks,-1).astype(np.float64)
 
     def reset(self):
         # Initial action
 
-        self.prev_actions = deque(maxlen=1)
+        self.prev_actions = deque(maxlen=2)
         self.prev_reward = 0.0
-        self.tick_count = 100
+        self.tick_count = 0
         self.done = False
         self.all_previous_actions = []
 
@@ -158,11 +161,16 @@ class multi_asset_env(gym.Env):
             "Total Reward: %.6f" % self.total_reward)
 
 
-    def _take_action(self,prev_action):
+    def _take_action(self, prev_action):
 
         return_matrix = self.my_data[0, self.tick_count, :]-self.my_data[0, self.tick_count - self.obs_ticks, :]
-        weighted_return_matrix=np.matmul(return_matrix, prev_action.T)
+        #calculate trading costs
+        return_matrix -= (prev_action[-1] != prev_action[-2]) * self.action_costs
+        weighted_return_matrix=np.matmul(return_matrix, prev_action[-1].T)
+        prev_action[-1]==prev_action[-2]
         return float(weighted_return_matrix)
 
     def pause_rendering(self):
         plt.show()
+
+
