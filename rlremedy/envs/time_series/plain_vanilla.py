@@ -84,8 +84,8 @@ class time_series_env(gym.Env):
 
 
 
-        self._take_action(prev_action=self.prev_actions.pop(),current_action=action,data=self.data_at_step)
-        self.total_reward += self.reward
+        reward = self._take_action(prev_action=self.prev_actions)
+        self.total_reward += reward
 
         info = {"Total_reward": self.total_reward, "tick_count": self.tick_count}
 
@@ -95,10 +95,8 @@ class time_series_env(gym.Env):
 
     def _next_observation(self):
         diff_market=np.diff(self.data[max(self.tick_count - 100,0):self.tick_count],axis=0)
-        try:
-            market_state = np.zeros(1) if np.all(diff_market!=np.NaN) else np.nanmean(diff_market)
-        except:
-            print("a")
+        market_state = np.zeros(1) if np.all(diff_market!=np.NaN) else np.nanmean(diff_market)
+
         observation = np.append(market_state, np.append(self.prev_actions[-1], self.total_reward))
         return observation.reshape(self.obs_ticks*3,-1).astype(np.float64)
 
@@ -159,19 +157,19 @@ class time_series_env(gym.Env):
             "Total Reward: %.6f" % self.total_reward)
 
 
-    def _take_action(self,prev_action,current_action,data):
+    def _take_action(self,prev_action):
 
-        if prev_action ==0:
+        if prev_action[-1] == 0:
             # we buy
-            self.reward = (data[1] - data[0])
+            reward = (self.data[self.tick_count] - self.data[max(self.tick_count-1,0)])
 
-        elif prev_action == 1:
+        elif prev_action[-1] == 1:
             # we sell
-            self.reward = (data[0] - data[1])
-        else:
-            self.reward = 0
+            reward = (self.data[max(self.tick_count-1,0)]- self.data[self.tick_count])
+
+        elif prev_action[-1] == 2:
+            reward = 0
             # all flat
-        if current_action != prev_action:
-            self.reward=-abs(self.reward)
-        self.reward = float(self.reward)
-        plt.show()
+        #if current_action != prev_action[-1]:
+        #    self.reward=-abs(self.reward)
+        return float(reward)
