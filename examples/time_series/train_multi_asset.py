@@ -33,8 +33,6 @@ def make_env():
 vec_env = gym.make(env_id)
 
 vec_env = DummyVecEnv([make_env])
-#vec_env = VecVideoRecorder(vec_env, f"videos/{env_id}", record_video_trigger=lambda x: x % 1000 == 0, video_length=200)
-#vec_env = make_vec_env(lambda: multi_asset_env(), n_envs=1)
 
 wandb.init(
     config={
@@ -59,12 +57,6 @@ callback = [SaveOnBestTrainingRewardCallback(check_freq=TIMESTEPS, log_dir=logdi
         verbose=2,
     ),
             ]
-'''
-wandb.config.learning_rate=model.learning_rate
-wandb.config.batch_size=batch_size
-wandb.config.n_eval_episodes=n_eval_episodes
-wandb.config.num_timesteps=model.num_timesteps
-'''
 
 
 
@@ -76,7 +68,8 @@ while iters<max_iters:
     model.learn(total_timesteps=TIMESTEPS,
             reset_num_timesteps=False,
             callback=callback,
-            log_interval=1000)
+            log_interval=1000,
+            tb_log_name=env_id)
     if iters % n_eval_episodes == 0:
         mean_reward, std_reward = evaluate_policy(model, vec_env, n_eval_episodes=n_eval_episodes)
         wandb.log({"mean_reward":mean_reward})

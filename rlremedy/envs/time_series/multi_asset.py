@@ -94,10 +94,10 @@ class multi_asset_env(gym.Env):
         return self.observation, self.total_reward, self.done, info
 
     def _next_observation(self):
-        market_state = np.mean(np.diff(self.my_data[0, max(self.tick_count - 100, 0):self.tick_count, :].numpy(),axis=0),axis=0)
+        diff_markets=np.diff(self.my_data[0, max(self.tick_count - 100, 0):self.tick_count, :].numpy(),axis=0)
+        market_state = np.zeros((1,(np.shape(diff_markets)[1]))) if np.all(diff_markets!=np.NaN) else np.nanmean(diff_markets)
 
         observation = np.append(market_state, np.append(self.prev_actions[-1], self.total_reward))
-        observation = np.nan_to_num(observation, nan=0)
         return observation.reshape(self.obs_ticks,-1).astype(np.float64)
 
     def reset(self):
@@ -167,7 +167,6 @@ class multi_asset_env(gym.Env):
         #calculate trading costs
         return_matrix -= (prev_action[-1] != prev_action[-2]) * self.action_costs
         weighted_return_matrix=np.matmul(return_matrix, prev_action[-1].T)
-        prev_action[-1]==prev_action[-2]
         return float(weighted_return_matrix)
 
     def pause_rendering(self):

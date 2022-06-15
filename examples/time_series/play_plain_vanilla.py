@@ -1,12 +1,12 @@
 from stable_baselines3 import DQN
-from rlremedy.envs.time_series import time_series_env
+from rlremedy.envs.time_series.plain_vanilla import time_series_env
 import os
 
 
 env = time_series_env() # continuous: LunarLanderContinuous-v2
 env.reset()
 
-model_path = os.path.join("logs","DQN","best_model.zip")
+model_path = os.path.join("logs","1655273843","best_model.zip")
 
 model = DQN.load(model_path, env=env)
 

@@ -1,12 +1,13 @@
 import gym
+import os
 from stable_baselines3 import PPO
 
-models_dir = "models/PPO"
+models_dir = f"models/lunar/"
 
 env = gym.make('LunarLander-v2')  # continuous: LunarLanderContinuous-v2
 env.reset()
 
-model_path = f"{models_dir}/60000.zip"
+model_path = os.path.join(models_dir,"best_model")
 model = PPO.load(model_path, env=env)
 
 episodes = 5
