@@ -1,0 +1,57 @@
+repos:
+
+- repo: https://github.com/roy-ht/pre-commit-jupyter
+  rev: v1.2.1
+  hooks:
+    - id: jupyter-notebook-cleanup
+      args:
+        - --remove-kernel-metadata
+        - --pin-patterns
+        - "[pin];[donotremove]"
+
+- repo: https://github.com/PyCQA/isort
+  rev: 5.9.3
+  hooks:
+  - id: isort
+    exclude: |
+      (?x)^(
+          venv/
+      )$
+
+- repo: https://github.com/psf/black
+  rev: 22.3.0
+  hooks:
+  - id: black
+    exclude: |
+      (?x)^(
+          venv/
+      )$
+
+- repo: "https://github.com/pre-commit/pre-commit-hooks"
+  rev: v4.0.1
+  hooks:
+  - id: check-added-large-files
+    args:
+    - "--maxkb=2024"
+  - id: trailing-whitespace
+  - id: check-docstring-first
+  - id: check-json
+  - id: check-toml
+  - id: check-yaml
+    exclude: |
+        (?x)^(
+            config\/helm\/templates\/.*
+        )$
+  - id: check-merge-conflict
+  - id: detect-private-key
+  - id: fix-byte-order-marker
+
+- repo: https://gitlab.com/pycqa/flake8
+  rev: 3.9.2
+  hooks:
+  - id: flake8
+    exclude: |
+      (?x)^(
+          Archive\/.*|
+          .*\/notebooks\/.*|
+      )$
