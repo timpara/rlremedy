@@ -4,6 +4,9 @@ import numpy as np
 from collections import deque
 import matplotlib.pyplot as plt
 from gym.envs.registration import register
+from rlremedy.models import time_series
+from rlremedy.models.time_series import configuration as process_conf
+
 from sklearn.preprocessing import minmax_scale
 plt.ion()
 class DynamicUpdate():
@@ -38,18 +41,22 @@ class DynamicUpdate():
 
 class time_series_env(gym.Env):
 
-    def __init__(self):
+    def __init__(self,
+                 data_generating_process,
+                 process_params = process_conf.SPParams):
         super(time_series_env, self).__init__()
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
         self.action_space = spaces.Discrete(2)#buy sell
         # Number of past ticks per feature to be used as observations (1440min=1day, 10080=1Week, 43200=1month, )
-        self.obs_ticks = 3
+        self.obs_ticks = 1
         # Example for using image as input (channel-first; channel-last also works):
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_ticks, 1),
-                                            dtype=int)
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_ticks*3, 1),
+                                            dtype=float)
         self.total_reward = 0
+        self.process_params = process_params
+        self.data_generating_process = data_generating_process(self.process_params)
     def register(self,env_id):
         register(
             # unique identifier for the env `name-version`
@@ -64,7 +71,7 @@ class time_series_env(gym.Env):
     def step(self, action):
         self.tick_count += 1
         # On last timestep kill the step
-        if self.tick_count == len(self.my_data)-1:
+        if self.tick_count == len(self.data)-1:
             self.done = True
 
 
@@ -87,10 +94,14 @@ class time_series_env(gym.Env):
         return self.observation, self.total_reward, self.done, info
 
     def _next_observation(self):
-        self.data_at_step.append(self.my_data[self.tick_count, 0])
-        observation = np.array([int(np.where(np.diff(self.data_at_step)<0,-1,1)), self.prev_actions[-1], self.total_reward]).ravel()
-        observation = np.reshape(observation, (self.obs_ticks,1 ))
-        return observation
+        diff_market=np.diff(self.data[max(self.tick_count - 100,0):self.tick_count],axis=0)
+        try:
+            market_state = np.zeros(1) if np.all(diff_market!=np.NaN) else np.nanmean(diff_market)
+        except:
+            print("a")
+        observation = np.append(market_state, np.append(self.prev_actions[-1], self.total_reward))
+        return observation.reshape(self.obs_ticks*3,-1).astype(np.float64)
+
 
     def reset(self):
         # Initial action
@@ -104,15 +115,8 @@ class time_series_env(gym.Env):
         #create toy sin data
         # 10k linearly spaced numbers
 
-        self.ticks = np.arange(0, 1000)
-        cycles = 5  # how many sine cycles
-        resolution = 1000  # how many datapoints to generate
-
-        length = np.pi * 2 * cycles
-        self.my_data = np.reshape(np.sin(np.arange(0, length, length / resolution)),[-1,1])
-        self.my_data = minmax_scale(self.my_data, feature_range=(0, 1))
-
-
+        self.ticks = self.process_params.sample_size
+        self.data = self.data_generating_process.sample_paths()
 
         self._first_rendering=True
         for _ in range(self.prev_actions.maxlen):
@@ -141,14 +145,14 @@ class time_series_env(gym.Env):
             #elif self.all_previous_actions[-1]==0:
 
             #if color:
-            plt.scatter(self.tick_count,self.my_data[self.tick_count-1], color=color)
+            plt.scatter(self.tick_count,self.data[self.tick_count-1], color=color)
 
         if self._first_rendering:
             self._first_rendering = False
             plt.cla()
-            plt.plot(self.my_data)
+            plt.plot(self.data)
             _plot_position()
-        plt.plot(self.my_data)
+        plt.plot(self.data)
         _plot_position()
 
         plt.suptitle(
@@ -169,6 +173,5 @@ class time_series_env(gym.Env):
             # all flat
         if current_action != prev_action:
             self.reward=-abs(self.reward)
-
-    def pause_rendering(self):
+        self.reward = float(self.reward)
         plt.show()

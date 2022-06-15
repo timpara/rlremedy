@@ -1,6 +1,9 @@
 from rlremedy.envs.time_series.plain_vanilla import time_series_env
 from rlremedy.envs.games.snake import snake_env
 from rlremedy.envs.time_series.multi_asset import multi_asset_env
+from rlremedy.models.time_series import configuration as process_conf
+from rlremedy.models.time_series import OuProcess
+from rlremedy.models.time_series import SeasonalProcess
 import pytest
 
 
@@ -9,12 +12,32 @@ slow_test = pytest.mark.skipif(
     reason="Only run when --run-slow is given",
 )
 @slow_test
-def test_time_series_env_random_action():
+def test_time_series_env_ou_random_action():
     '''
     Instantiates the time series env and samples random action.
     Allows for a quick end-to-end check
     '''
-    env = time_series_env()
+    env = time_series_env(data_generating_process=OuProcess,
+                          process_params=process_conf.OUParams)
+    episodes = 5
+
+    for _ in range(episodes):
+        env.reset()
+        while not env.done:
+            print("------------------")
+            random_action = env.action_space.sample()
+            print("action",random_action)
+            obs, total_reward, _, info = env.step(random_action)
+            print('reward',total_reward)
+
+@slow_test
+def test_time_series_env_sp_random_action():
+    '''
+    Instantiates the time series env and samples random action.
+    Allows for a quick end-to-end check
+    '''
+    env = time_series_env(data_generating_process=SeasonalProcess,
+                          process_params=process_conf.SPParams)
     episodes = 5
 
     for _ in range(episodes):
