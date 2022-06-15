@@ -1,16 +1,16 @@
-import gym
-import os
 from stable_baselines3 import PPO
+from rlremedy.envs.time_series.multi_asset import multi_asset_env
+import os
 
-models_dir = f"models/lunar/"
 
-env = gym.make('LunarLander-v2')  # continuous: LunarLanderContinuous-v2
+env = multi_asset_env() # continuous: LunarLanderContinuous-v2
 env.reset()
 
-model_path = os.path.join(models_dir,"best_model")
+model_path = os.path.join("logs","MultiAsset-v1","1655283727","best_model.zip")
+
 model = PPO.load(model_path, env=env)
 
-episodes = 5
+episodes = 1
 
 for ep in range(episodes):
     obs = env.reset()
@@ -20,3 +20,4 @@ for ep in range(episodes):
         obs, rewards, done, info = env.step(action)
         env.render()
         print(rewards)
+    env.pause_rendering()

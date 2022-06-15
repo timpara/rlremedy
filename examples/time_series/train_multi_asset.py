@@ -1,61 +1,78 @@
-from stable_baselines3 import DDPG
+import gym
+from stable_baselines3 import PPO
 import os
 from rlremedy.envs.time_series.multi_asset import multi_asset_env
 import time
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder
 from utils.callbacks import SaveOnBestTrainingRewardCallback
 import wandb
-
+from wandb.integration.sb3 import WandbCallback
 
 env_id = "MultiAsset-v1"
 models_dir = os.path.join("models",env_id,str(int(time.time())))
 logdir = os.path.join("logs",env_id,str(int(time.time())))
 TIMESTEPS = 252
-max_iters=1e4
-
-
+max_iters=1e3
+batch_size = 2048
+n_eval_episodes=10
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
 if not os.path.exists(logdir):
     os.makedirs(logdir)
 
 vec_env = multi_asset_env()
-vec_env.register(env_id=env_id)
-vec_env = Monitor(vec_env, logdir)
+vec_env.register(env_id=env_id,max_episode_steps=TIMESTEPS)
 
-# num_cpu = 10  # Number of processes to use
-# Optional Create the vectorized environment
-# vec_env = make_vec_env(env_id, n_envs=num_cpu)
-# vec_env = time_series_env()
+def make_env():
+    env = gym.make(env_id)
+    env = Monitor(env,logdir)  # record stats such as returns
+    return env
+
+vec_env = gym.make(env_id)
+
+vec_env = DummyVecEnv([make_env])
+
 wandb.init(
     config={
     "policy": 'MlpPolicy',
     "total_timesteps": TIMESTEPS*max_iters},
     sync_tensorboard=True,  # automatically upload SB3's tensorboard metrics to W&B
-    project="DDPG-MultiAsset-Example",
+    project="PPO-MultiAsset-ActionCosts",
     monitor_gym=True,       # automatically upload gym environements' videos
-    save_code=True)
+    save_code=False)
 
-model = DDPG("MlpPolicy",
+model = PPO("MlpPolicy",
             vec_env,
             verbose=1,
-            tensorboard_log=logdir,
-            seed=2)
+            tensorboard_log=logdir,seed=2,batch_size=batch_size)
 
 
 # Random Agent, before training
-mean_reward, std_reward = evaluate_policy(model, vec_env, n_eval_episodes=10)
-callback = SaveOnBestTrainingRewardCallback(check_freq=TIMESTEPS, log_dir=logdir)
+#mean_reward, std_reward = evaluate_policy(model, vec_env, n_eval_episodes=n_eval_episodes)
+callback = [SaveOnBestTrainingRewardCallback(check_freq=TIMESTEPS, log_dir=logdir),WandbCallback(
+        gradient_save_freq=100,
+        model_save_path=logdir,
+        verbose=2,
+    ),
+            ]
+
+
 
 
 iters = 0
+#wandb.watch
 while iters<max_iters:
     iters += 1
     model.learn(total_timesteps=TIMESTEPS,
             reset_num_timesteps=False,
-            tb_log_name=f"DDPG",
             callback=callback,
-            log_interval=100)
-    #model.save(os.path.join(models_dir,str(TIMESTEPS*iters)))
+            log_interval=1000,
+            tb_log_name=env_id)
+    if iters % n_eval_episodes == 0:
+        mean_reward, std_reward = evaluate_policy(model, vec_env, n_eval_episodes=n_eval_episodes)
+        wandb.log({"mean_reward":mean_reward})
+        wandb.log({"std_reward": std_reward})
+    model.save(os.path.join(logdir))
 wandb.finish()

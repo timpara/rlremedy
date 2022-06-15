@@ -1,6 +1,6 @@
 from stable_baselines3 import DQN
 import os
-from rlremedy.envs.time_series import time_series_env
+from rlremedy.envs.time_series.plain_vanilla import time_series_env
 import time
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -35,7 +35,6 @@ wandb.init(
     project="DQN-Toy-Example",
     monitor_gym=True,       # automatically upload gym environements' videos
     save_code=True)
-# model = PPO(CustomActorCriticPolicy, vec_env,verbose=1, tensorboard_log=logdir,learning_rate=linear_schedule(0.001))#policy_kwargs=policy_kwargs)
 
 model = DQN("MlpPolicy",
             vec_env,

@@ -5,7 +5,7 @@ from rlremedy.envs.games.snake import snake_env
 env = snake_env() # continuous: LunarLanderContinuous-v2
 env.reset()
 
-model_path = os.path.join("models","1644505910","80000.zip")
+model_path = os.path.join("models","snake","best_model.zip")
 
 model = PPO.load(model_path, env=env)
 
