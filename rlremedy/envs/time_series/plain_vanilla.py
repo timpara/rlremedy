@@ -5,6 +5,7 @@ from collections import deque
 import matplotlib.pyplot as plt
 from gym.envs.registration import register
 from rlremedy.models import time_series
+from rlremedy.models.time_series import OuProcess
 from rlremedy.models.time_series import configuration as process_conf
 
 from sklearn.preprocessing import minmax_scale
@@ -42,20 +43,21 @@ class DynamicUpdate():
 class time_series_env(gym.Env):
 
     def __init__(self,
-                 data_generating_process,
-                 process_params = process_conf.SPParams):
+                 data_generating_process = OuProcess,
+                 process_params = process_conf.OUParams):
         super(time_series_env, self).__init__()
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
-        self.action_space = spaces.Discrete(2)#buy sell
+        self.action_space = spaces.Discrete(3)#buy sell neutral
         # Number of past ticks per feature to be used as observations (1440min=1day, 10080=1Week, 43200=1month, )
         self.obs_ticks = 1
         # Example for using image as input (channel-first; channel-last also works):
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_ticks*3, 1),
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_ticks*4, 1),
                                             dtype=float)
-        self.total_reward = 0
+
         self.process_params = process_params
+        self.reward_range = (-float("inf"), float("inf"))
         self.data_generating_process = data_generating_process(self.process_params)
     def register(self,env_id):
         register(
@@ -84,8 +86,16 @@ class time_series_env(gym.Env):
 
 
 
-        reward = self._take_action(prev_action=self.prev_actions)
-        self.total_reward += reward
+
+        # max sum sofar
+        if self.tick_count >= 2:
+            reward = self._take_action(prev_action=self.prev_actions)
+            max_return = np.sum(np.abs(np.diff(self.data[:self.tick_count + 1].ravel())))
+            std_max_return = np.std(np.abs(np.diff(self.data[:self.tick_count + 1].ravel())))
+            max_sharpe = np.sum(max_return)/std_max_return
+            self.total_reward = reward / max_sharpe
+        else:
+            self.total_reward = 0
 
         info = {"Total_reward": self.total_reward, "tick_count": self.tick_count}
 
@@ -94,11 +104,11 @@ class time_series_env(gym.Env):
         return self.observation, self.total_reward, self.done, info
 
     def _next_observation(self):
-        diff_market=np.diff(self.data[max(self.tick_count - 100,0):self.tick_count],axis=0)
+        diff_market=np.diff(self.data[max(self.tick_count - 5,0):self.tick_count+1],axis=0)
         market_state = np.zeros(1) if np.all(diff_market!=np.NaN) else np.nanmean(diff_market)
-
+        market_state = np.append(market_state,self.data[self.tick_count])
         observation = np.append(market_state, np.append(self.prev_actions[-1], self.total_reward))
-        return observation.reshape(self.obs_ticks*3,-1).astype(np.float64)
+        return observation.reshape(self.obs_ticks*4,-1).astype(np.float64)
 
 
     def reset(self):
@@ -107,12 +117,13 @@ class time_series_env(gym.Env):
         self.prev_actions = deque(maxlen=1)
         self.prev_reward = 0
         self.data_at_step = deque(maxlen=2)
-        self.tick_count = 0
+        self.tick_count = 2
         self.done = False
         self.all_previous_actions = []
         #create toy sin data
         # 10k linearly spaced numbers
-
+        self.total_reward = 0
+        self.rewards = []
         self.ticks = self.process_params.sample_size
         self.data = self.data_generating_process.sample_paths()
 
@@ -128,7 +139,7 @@ class time_series_env(gym.Env):
         return observation
 
     def render(self, mode="human"):
-        if self.tick_count < 100:
+        if self.tick_count < 2:
             return
 
 
@@ -138,7 +149,7 @@ class time_series_env(gym.Env):
                 color = 'green'
             elif self.all_previous_actions[-1]==1:
                 color = 'red'
-            else:
+            elif self.all_previous_actions[-1] == 2:
                 color = 'yellow'
             #elif self.all_previous_actions[-1]==0:
 
@@ -147,29 +158,41 @@ class time_series_env(gym.Env):
 
         if self._first_rendering:
             self._first_rendering = False
+            plt.figure(figsize=(18.5,10.5))
             plt.cla()
             plt.plot(self.data)
             _plot_position()
-        plt.plot(self.data)
+        #plt.plot(self.data)
         _plot_position()
 
         plt.suptitle(
-            "Total Reward: %.6f" % self.total_reward)
+            f"Total Reward: {np.round(self.total_reward,2)}")
 
 
     def _take_action(self,prev_action):
 
         if prev_action[-1] == 0:
             # we buy
-            reward = (self.data[self.tick_count] - self.data[max(self.tick_count-1,0)])
+            reward = (self.data[self.tick_count] - self.data[self.tick_count-1])
 
         elif prev_action[-1] == 1:
             # we sell
-            reward = (self.data[max(self.tick_count-1,0)]- self.data[self.tick_count])
+            reward = (self.data[self.tick_count-1]- self.data[self.tick_count])
 
         elif prev_action[-1] == 2:
             reward = 0
             # all flat
-        #if current_action != prev_action[-1]:
-        #    self.reward=-abs(self.reward)
-        return float(reward)
+        reward = float(reward)
+
+
+        self.rewards.append(reward)
+        if len(self.rewards)>1:
+            sharpe = np.sum(self.rewards)/np.std(self.rewards)
+            return sharpe
+        else:
+            return 0
+    def pause_rendering(self):
+        sharpe = np.sum(self.rewards) / np.nanstd(self.rewards)
+        print(f"Sharpe Ratio: {sharpe}")
+        plt.show()
+        return sharpe
