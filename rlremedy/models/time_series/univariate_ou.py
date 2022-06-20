@@ -1,6 +1,7 @@
 from typing import Optional
 
 import numpy as np
+from datetime import datetime
 from rlremedy.models.time_series.configuration import OUParams
 
 
@@ -26,7 +27,7 @@ class OuProcess:
         to simulate discrete increments (dW) of a Brownian Motion.
         Optional random_state to reproduce results.
         """
-        np.random.seed(self.OU_params.seed)
+        np.random.seed(int(datetime.utcnow().timestamp()))
         return np.random.normal(0.0, 1.0, self.OU_params.sample_size)
     def sample_paths(self,
         X_0: Optional[float] = None,
@@ -65,7 +66,7 @@ class OuProcess:
         return np.insert(integral_W, 0, 0)[:-1]
 #----------------------------------------------------
 if __name__=="__main__":
-    OU_params = OUParams(alpha=0.07, gamma=0.0, beta=0.001, sample_size=1_000)
+    OU_params = OUParams(alpha=0.6, gamma=30, beta=1, sample_size=1000)
     OU_proc = OuProcess(OU_params)
     OU_proc = OU_proc.sample_paths()
 
@@ -75,7 +76,7 @@ if __name__=="__main__":
     fig = plt.figure(figsize=(15, 7))
 
     title = "Ornstein-Uhlenbeck process, "
-    title += r"$\alpha=0.07$, $\gamma = 0$, $\beta = 0.001$"
+    title += fr"$\alpha={OU_params.alpha}$, $\gamma = {OU_params.gamma}$, $\beta = {OU_params.beta}$"
     plt.plot(OU_proc)
     plt.gca().set_title(title, fontsize=15)
     plt.xticks(fontsize=15)
