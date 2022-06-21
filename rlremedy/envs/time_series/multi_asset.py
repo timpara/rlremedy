@@ -58,8 +58,8 @@ class multi_asset_env(gym.Env):
         self.initial_state = [150, 1.0]
         self.action_costs = 0.01
         # Example for using image as input (channel-first; channel-last also works):
-        self.observation_space = spaces.Box(low=float(-1), high=float(1e4), shape=(self.obs_ticks,self.number_of_assets*2+1), dtype=np.float32)
-        self.action_space = spaces.Box(low=-1.0,high=1.0,shape=(self.number_of_assets,),dtype=np.float32)#buy sell
+        self.observation_space = spaces.Box(low=float(-1), high=float(1e4), shape=(self.obs_ticks,self.number_of_assets*2+1), dtype=np.float64)
+        self.action_space = spaces.Box(low=-1.0,high=1.0,shape=(self.number_of_assets,),dtype=np.float64)#buy sell
         self.seed_sampling=list(map(int,np.random.random_sample(self.number_of_assets)*100))
         self.total_reward = 0
     def register(self,env_id,max_episode_steps):
@@ -94,8 +94,8 @@ class multi_asset_env(gym.Env):
         return self.observation, self.total_reward, self.done, info
 
     def _next_observation(self):
-        diff_markets=np.diff(self.my_data[0, max(self.tick_count - 100, 0):self.tick_count, :].numpy(),axis=0)
-        market_state = np.zeros((1,(np.shape(diff_markets)[1]))) if np.all(diff_markets!=np.NaN) else np.nanmean(diff_markets)
+        diff_markets=np.diff(self.my_data[0, max(self.tick_count - 100, 0):self.tick_count+1, :].numpy(),axis=0)
+        market_state = np.zeros((1,(np.shape(diff_markets)[1]))) if np.all(diff_markets!=np.NaN) else diff_markets[-1]
 
         observation = np.append(market_state, np.append(self.prev_actions[-1], self.total_reward))
         return observation.reshape(self.obs_ticks,-1).astype(np.float64)
@@ -105,7 +105,7 @@ class multi_asset_env(gym.Env):
 
         self.prev_actions = deque(maxlen=2)
         self.prev_reward = 0.0
-        self.tick_count = 0
+        self.tick_count = 2
         self.done = False
         self.all_previous_actions = []
 

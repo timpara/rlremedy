@@ -38,7 +38,8 @@ def test_plain_vanilla_env_seasonal():
     Instantiates the env and feeds it into the env_check. Output is generated if sanity checks fail.
     :return:
     '''
-    env = time_series_env(data_generating_process=SeasonalProcess)
+    env = time_series_env(data_generating_process=SeasonalProcess,
+                          process_params=process_conf.SPParams)
     # It will check your custom environment and output additional warnings if needed
     check_env(env)
 @slow_test

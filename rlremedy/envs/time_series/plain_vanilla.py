@@ -100,8 +100,10 @@ class time_series_env(gym.Env):
         info = {"Total_reward": self.total_reward, "tick_count": self.tick_count}
 
         self.prev_actions.append(action)
+        if not isinstance(self.total_reward, (float, int)):
+            print("The reward returned by `step()` must be a float")
 
-        return self.observation, self.total_reward, self.done, info
+        return self.observation, float(self.total_reward), self.done, info
 
     def _next_observation(self):
         diff_market=np.diff(self.data[max(self.tick_count - 5,0):self.tick_count+1],axis=0)
@@ -115,7 +117,7 @@ class time_series_env(gym.Env):
         # Initial action
 
         self.prev_actions = deque(maxlen=1)
-        self.prev_reward = 0
+        self.prev_reward = 0.
         self.data_at_step = deque(maxlen=2)
         self.tick_count = 2
         self.done = False
@@ -135,7 +137,8 @@ class time_series_env(gym.Env):
 
         # create observation:
         observation = self._next_observation()
-
+        if not isinstance(self.total_reward, (float, int)):
+            print("The reward returned by `step()` must be a float")
         return observation
 
     def render(self, mode="human"):
@@ -180,7 +183,7 @@ class time_series_env(gym.Env):
             reward = (self.data[self.tick_count-1]- self.data[self.tick_count])
 
         elif prev_action[-1] == 2:
-            reward = 0
+            reward = 0.
             # all flat
         reward = float(reward)
 
